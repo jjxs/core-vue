@@ -11,11 +11,11 @@ export function setupComponent(instance) {
     // TODO
     // initProps()
     // initSlots()
-    setupStateFulComponent(instance)
+    setupStatefulComponent(instance)
 };
 
 
-function setupStateFulComponent(instance: any) {
+function setupStatefulComponent(instance: any) {
     const Component = instance.type;
 
     const {setup}=Component
@@ -41,8 +41,6 @@ function handleSetupResult(instance, setupResult: any) {
 function finishComponentSetup(instance: any) {
     const Component = instance.type;
 
-    if(Component.render){
-        instance.render = Component.render
-    }
+    instance.render = Component.render
 }
 
