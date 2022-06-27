@@ -31,17 +31,13 @@ export const App = {
         id: 'root',
         class: ['red', 'hard']
       },
-      // "hi, " + this.msg
-      // string
-      // "hi, mini-vue"
-      // Array
-      [h('p', { class: 'red' }, 'hi'), h('p', { class: 'blue' }, 'mini-vue')]
+      "hi, " + this.msg
     )
   },
 
   setup() {
     return {
-      msg: 'mini-vue'
+      msg: 'mini-vue1'
     }
   }
 }
