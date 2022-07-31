@@ -3,7 +3,7 @@ import { hasOwn } from "../shared/index";
 const publicProperiesMap = {
     $el: (i) => i.vnode.el,
     // $slots
-    $slots: (i)=> i.vnode.children
+    $slots: (i)=> i.slots
 }
 
 export const PublicInstanceProxyHandlers = {
