@@ -1,22 +1,33 @@
 import { h } from '../../lib/guide-mini-vue.esm.js';
-import { Foo } from './Foo.js';
 
+window.self = null;
 export const App = {
-  name: 'App',
+  // 必须要写 render
   render() {
-    const app = h("div", {}, "App");
-    const foo = h(Foo, {}, 
+    window.self = this;
+    // ui
+    return h(
+      'div',
       {
-        header: ({age})=> h("p", {}, "header" + age),
-        footer: ()=> h("p", {}, "footer")
-      }
-    )
-
-
-    return h("div", {}, [app, foo])
+        id: 'root',
+        class: ['red', 'hard']
+      },
+      // "hi, " + this.msg
+      'hi, ' +
+        this.msg[
+          // string
+          // "hi, mini-vue"
+          // Array
+          (h('p', { class: 'red' }, 'hi'), h('p', { class: 'blue' }, 'mini-vue'))
+        ]
+      // [h("p", { class:"red"}, "hi"), h("p", {class:"blue"}, "mini-vue")]
+    );
   },
 
   setup() {
-    return {};
+    return {
+      msg: 'mini-vue',
+      msg: 'mini-vue-haha'
+    };
   }
 };
