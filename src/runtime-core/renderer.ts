@@ -1,10 +1,11 @@
-import { effect } from '../reactivity/effect';
-import { EMPTY_OBJ } from '../shared';
-import { ShapeFlags } from '../shared/ShapeFlags';
-import { createComponentInstance, setupComponent } from './component';
-import { shouldUpdateComponent } from './componentUpdateUtils';
-import { createAppAPI } from './createApp';
-import { Fragment, Text } from './vnode';
+import { effect } from "../reactivity/effect";
+import { EMPTY_OBJ } from "../shared";
+import { ShapeFlags } from "../shared/ShapeFlags";
+import { createComponentInstance, setupComponent } from "./component";
+import { shouldUpdateComponent } from "./componentUpdateUtils";
+import { createAppAPI } from "./createApp";
+import { queueJobs } from "./scheduler";
+import { Fragment, Text } from "./vnode";
 
 export function createRenderer(options) {
   const {
@@ -12,7 +13,7 @@ export function createRenderer(options) {
     patchProp: hostPatchProp,
     insert: hostInsert,
     remove: hostRemove,
-    setElementText: hostSetElementText
+    setElementText: hostSetElementText,
   } = options;
 
   function render(vnode, container) {
@@ -46,11 +47,23 @@ export function createRenderer(options) {
     container.append(textNode);
   }
 
-  function processFragment(n1, n2: any, container: any, parentComponent, anchor) {
+  function processFragment(
+    n1,
+    n2: any,
+    container: any,
+    parentComponent,
+    anchor
+  ) {
     mountChildren(n2.children, container, parentComponent, anchor);
   }
 
-  function processElement(n1, n2: any, container: any, parentComponent, anchor) {
+  function processElement(
+    n1,
+    n2: any,
+    container: any,
+    parentComponent,
+    anchor
+  ) {
     if (!n1) {
       mountElement(n2, container, parentComponent, anchor);
     } else {
@@ -59,9 +72,9 @@ export function createRenderer(options) {
   }
 
   function patchElement(n1, n2, container, parentComponent, anchor) {
-    console.log('patchElement');
-    console.log('n1', n1);
-    console.log('n2', n2);
+    console.log("patchElement");
+    console.log("n1", n1);
+    console.log("n2", n2);
 
     const oldProps = n1.props || EMPTY_OBJ;
     const newProps = n2.props || EMPTY_OBJ;
@@ -87,7 +100,7 @@ export function createRenderer(options) {
       }
     } else {
       if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
-        hostSetElementText(container, '');
+        hostSetElementText(container, "");
         mountChildren(c2, container, parentComponent, anchor);
       } else {
         // array diff array
@@ -96,7 +109,13 @@ export function createRenderer(options) {
     }
   }
 
-  function patchKeyedChildren(c1, c2, container, parentComponent, parentAnchor) {
+  function patchKeyedChildren(
+    c1,
+    c2,
+    container,
+    parentComponent,
+    parentAnchor
+  ) {
     const l2 = c2.length;
     let i = 0;
     let e1 = c1.length - 1;
@@ -106,7 +125,6 @@ export function createRenderer(options) {
       return n1.type === n2.type && n1.key === n2.key;
     }
 
-    // 左侧
     while (i <= e1 && i <= e2) {
       const n1 = c1[i];
       const n2 = c2[i];
@@ -120,7 +138,6 @@ export function createRenderer(options) {
       i++;
     }
 
-    // 右侧
     while (i <= e1 && i <= e2) {
       const n1 = c1[e1];
       const n2 = c2[e2];
@@ -135,7 +152,6 @@ export function createRenderer(options) {
       e2--;
     }
 
-    // 新的比老的长 创建
     if (i > e1) {
       if (i <= e2) {
         const nextPos = e2 + 1;
@@ -154,9 +170,9 @@ export function createRenderer(options) {
       // 中间对比
       let s1 = i;
       let s2 = i;
+
       const toBePatched = e2 - s2 + 1;
       let patched = 0;
-      // 移动范围映射表
       const keyToNewIndexMap = new Map();
       const newIndexToOldIndexMap = new Array(toBePatched);
       let moved = false;
@@ -183,6 +199,7 @@ export function createRenderer(options) {
           for (let j = s2; j <= e2; j++) {
             if (isSomeVNodeType(prevChild, c2[j])) {
               newIndex = j;
+
               break;
             }
           }
@@ -203,8 +220,11 @@ export function createRenderer(options) {
         }
       }
 
-      const increasingNewIndexSequence = moved ? getSequence(newIndexToOldIndexMap) : [];
+      const increasingNewIndexSequence = moved
+        ? getSequence(newIndexToOldIndexMap)
+        : [];
       let j = increasingNewIndexSequence.length - 1;
+
       for (let i = toBePatched - 1; i >= 0; i--) {
         const nextIndex = i + s2;
         const nextChild = c2[nextIndex];
@@ -278,66 +298,87 @@ export function createRenderer(options) {
     });
   }
 
-  function processComponent(n1, n2: any, container: any, parentComponent, anchor) {
-    if(!n1){
-
+  function processComponent(
+    n1,
+    n2: any,
+    container: any,
+    parentComponent,
+    anchor
+  ) {
+    if (!n1) {
       mountComponent(n2, container, parentComponent, anchor);
-    }else {
-      updateComponent(n1, n2)
+    } else {
+      updateComponent(n1, n2);
     }
   }
 
   function updateComponent(n1, n2) {
     const instance = (n2.component = n1.component);
-    if (shouldUpdateComponent(n1, n2)){
+    if (shouldUpdateComponent(n1, n2)) {
       instance.next = n2;
-      instance.update()
+      instance.update();
     } else {
       n2.el = n1.el;
       instance.vnode = n2;
     }
   }
 
-  function mountComponent(initialVNode: any, container, parentComponent, anchor) {
-    const instance = (initialVNode.component = createComponentInstance(initialVNode, parentComponent));
+  function mountComponent(
+    initialVNode: any,
+    container,
+    parentComponent,
+    anchor
+  ) {
+    const instance = (initialVNode.component = createComponentInstance(
+      initialVNode,
+      parentComponent
+    ));
 
     setupComponent(instance);
     setupRenderEffect(instance, initialVNode, container, anchor);
   }
 
   function setupRenderEffect(instance: any, initialVNode, container, anchor) {
-    instance.update = effect(() => {
-      if (!instance.isMounted) {
-        console.log('init');
-        const { proxy } = instance;
-        const subTree = (instance.subTree = instance.render.call(proxy));
+    instance.update = effect(
+      () => {
+        if (!instance.isMounted) {
+          console.log("init");
+          const { proxy } = instance;
+          const subTree = (instance.subTree = instance.render.call(proxy));
 
-        patch(null, subTree, container, instance, anchor);
+          patch(null, subTree, container, instance, anchor);
 
-        initialVNode.el = subTree.el;
+          initialVNode.el = subTree.el;
 
-        instance.isMounted = true;
-      } else {
-        console.log('update');
-        const {next, vnode} = instance;
-        if (next) {
-          next.el = vnode.el;
-          
-          updateComponentPreRender(instance, next);
+          instance.isMounted = true;
+        } else {
+          console.log("update");
+          const { next, vnode } = instance;
+          if (next) {
+            next.el = vnode.el;
+
+            updateComponentPreRender(instance, next);
+          }
+
+          const { proxy } = instance;
+          const subTree = instance.render.call(proxy);
+          const prevSubTree = instance.subTree;
+          instance.subTree = subTree;
+
+          patch(prevSubTree, subTree, container, instance, anchor);
         }
-        
-        const { proxy } = instance;
-        const subTree = instance.render.call(proxy);
-        const prevSubTree = instance.subTree;
-        instance.subTree = subTree;
-
-        patch(prevSubTree, subTree, container, instance, anchor);
+      },
+      {
+        scheduler() {
+          console.log("update - scheduler");
+          queueJobs(instance.update);
+        },
       }
-    });
+    );
   }
 
   return {
-    createApp: createAppAPI(render)
+    createApp: createAppAPI(render),
   };
 }
 
@@ -348,11 +389,6 @@ function updateComponentPreRender(instance, nextVNode) {
   instance.props = nextVNode.props;
 }
 
-/**
- * 最长递增子序列
- * @param arr
- * @returns
- */
 function getSequence(arr) {
   const p = arr.slice();
   const result = [0];
