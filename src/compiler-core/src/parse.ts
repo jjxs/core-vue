@@ -22,8 +22,30 @@ function paserChildren(context) {
             node = parseElement(context)
         }
     }
+
+    if(!node){
+        node = parseText(context)
+    }
     nodes.push(node);
     return nodes
+}
+
+function parseText(context: any): any {
+    // 1. 获取content
+    const content = parseTextData(context, context.source.length);
+    return {
+        type: NodeTypes.TEXT,
+        content: content
+    }
+}
+
+
+function parseTextData(context: any, length) {
+    const content = context.source.slice(0, length);
+
+    // 2. 推进
+    advanceBy(context, length);
+    return content;
 }
 
 function paserInterpolation(context) {
@@ -37,31 +59,31 @@ function paserInterpolation(context) {
 
     const rawContentLength = closeIndex - openDelimiter.length;
 
-    const rawContent = context.source.slice(0, rawContentLength);
+    const rawContent = parseTextData(context, rawContentLength)
 
     const content = rawContent.trim()
 
-    advanceBy(context, rawContentLength + closeDelimiter.length)
+    advanceBy(context, closeDelimiter.length)
 
     return {
             type: NodeTypes.INTERPOLATION,
             content: {
                 type: NodeTypes.SIMPLE_EXPRESSION,
                 content: content ,
-            },
-        }
-}
+            },    
+        }    
+}    
 
 function createRoot(children) {
     return {
         children
-    }
+    }    
 }
     
 function createParserContext(content: string):any {
     return {
         source: content
-    }
+    }    
 }
 
 function advanceBy(context: any, length: number) {
@@ -93,4 +115,3 @@ function parseTag(context: any, type: TagType) {
         tag: tag
     }
 }
-
