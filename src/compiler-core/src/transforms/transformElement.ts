@@ -6,8 +6,6 @@ export function transformElement(node, context){
     {
 
         return ()=>{
-            context.helper(CREATE_ELEMENT_VNODE);
-            //中间处理层
     
             //tag
             const vnodeTag = `'${node.tag}'`;
